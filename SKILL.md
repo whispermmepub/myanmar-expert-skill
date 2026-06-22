@@ -192,3 +192,33 @@ When writing reviews or reports, ALWAYS:
 1. Save to a `.md` file with clear filename (e.g. `စာအုပ်နာမည်_review.md`)
 2. Paste the FULL content in chat immediately
 3. Do NOT wait for user to ask for the output
+
+---
+
+## 🆕 Added: Missing Letter Pattern (ခံစာမှ → ခံစားမှု)
+
+### Common OCR Error: Dropped "ရ" and "း"
+
+OCR က မြန်မာစာလုံးတွေထဲက **ရ** နဲ့ **း** (visarga) ကို ချန်လေ့ရှိတယ်။ ဒီအတွက် အမြဲစစ်ဆေးရမည်။
+
+| မှား | မှန် | ရှင်းလင်းချက် |
+|------|------|--------------|
+| **ခံစာမှ** / **ခံစာမှု** | **ခံစားမှု** | missing "ရ" — feeling/emotion |
+| **အကြောင်ဆုံး** | **အကြောင်းဆုံး** | missing "း" — most interesting/best story |
+| **စကားလုံ** (line-end) | **စကားလုံး** | missing "း" — word |
+| **ဖစ်နိုင်** | **ဖြစ်နိုင်** | missing "ြ" — possible |
+| **ကျေနပ်** | **ကျေနပ်** (already correct) | |
+
+### How to Check
+
+For every OCR proofread, ALWAYS run:
+```python
+# Check for missing ရ pattern
+check_words = ['ခံစားမှု', 'ခံစားချက်', 'ခံစားရ']
+for w in check_words:
+    wrong = w.replace('စား', 'စာ')
+    # Search for wrong form in context
+
+# Check for missing း (visarga) at end of words
+# စကားလုံ → စကားလုံး, အကြောင် → အကြောင်း
+```
