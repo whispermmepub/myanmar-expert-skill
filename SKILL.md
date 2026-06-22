@@ -275,3 +275,108 @@ OCR က လ နဲ့ ရ ကို မှားတတ်တယ်။
 |------|------|
 | **ဘာမှမရှိမု** | ဘာမှမရှိမှု |
 | **ခံစားမု** | ခံစားမှု |
+
+---
+
+## 🆕 Advanced OCR Error Hunter — 8 Rules (June 22, 2026)
+
+### Rule 1: Character Name Database
+
+စာဖတ်နေစဉ် ဇာတ်ကောင်အမည်၊ နေရာအမည်၊ စာအုပ်အမည်၊ လူအမည်များကို တွေ့တိုင်း Database ဆောက်ပါ။
+
+**Levenshtein Distance + Frequency Analysis:**
+- အမည်တစ်ခုကို အကြိမ်ရေအများကြီး (e.g. 100+) တွေ့ရင် "main form" အဖြစ် သတ်မှတ်
+- ဆင်တူသော်လည်း အကြိမ်ရေနည်းသော version (e.g. 1-3x) ကို **Name Variation Error** အဖြစ် Flag
+
+**ဥပမာ:**
+- ဟိုရှီနို (503x) = main form
+- ဟိုရှီဒို (2x) → OCR error (ဒ→န)
+- ဟိုရီနို (1x) → OCR error (missing ှ)
+- ဟိုးရှိနီ (1x) → OCR error (multiple)
+
+### Rule 2: Rare Word Detector
+
+စကားလုံးတစ်လုံးသည် တစ်အုပ်လုံးတွင် **၁-၂ ကြိမ်သာ** ပေါ်ပြီး အနီးစပ်ဆုံးစကားလုံးတစ်လုံးက **အကြိမ် ၃၀+** ပေါ်နေပါက OCR Error ဟု သံသယထားရမည်။
+
+**ဥပမာ:**
+- ကျွန်တာ် (1x) vs ကျွန်တော် (3268x) → OCR error
+- ရှူနေတယ် (1x) vs ရှိနေတယ် (39x) → OCR error
+- မမိပါဘူး (1x) vs မသိပါဘူး (37x) → OCR error
+- ဖြည့်ပြီး (1x) vs ကြည့်ပြီး (88x) → OCR error
+
+### Rule 3: Invalid Character Detector
+
+အောက်ပါ characters များသည် Myanmar text context အတွင်းတွင် ပေါ်လာပါက **Garbage Character Error** အဖြစ် Flag လုပ်ရမည်:
+
+```
+* " # @ | \ ^ ~ _
+```
+
+**ဥပမာ:**
+- `*ကျောက်တုံးနဲ့` → * ဖယ်
+- `*ဗိုလ်မှူးကြီး` → * ဖယ်
+- `*ဥပမာ ပြောတာပါ` → * ဖယ်
+
+### Rule 4: Missing Final Detector
+
+| သံသယပုံစံ | မှန်သောပုံစံ | ရှင်းလင်းချက် |
+|------------|-------------|--------------|
+| **မု** (without ှ) | **မှု** | ှပျောက်နေခြင်း |
+| **လဲ** (when meaning "also") | **လည်း** | ည်းပျောက် (မေးခွန်းလဲမဟုတ်လျှင်) |
+| **တာ်** | **တော်** | ာ်→ော် |
+
+### Rule 5: Context Similarity Check
+
+**လ→ရ Confusion:**
+"can/able to" context မှာ လ→ရ ဖြစ်မဖြစ် စစ်ဆေးရမည်။
+
+| မှား | မှန် | Context |
+|------|------|---------|
+| လျှောက်လို့**လ**တယ် | လျှောက်လို့**ရ**တယ် | able to walk |
+| သွားလို့**လ**တယ် | သွားလို့**ရ**တယ် | can go |
+| ဖြစ်**လ**နိုင် | ဖြစ်**ရ**နိုင် | can happen |
+
+**NOTE:** "လျှောက်လို့လာတယ်" (walking here) က CORRECT — ဤနေရာက လ=လာ (come) ဖြစ်သည်။ "လျှောက်လို့**လ**တယ်" (can walk) နဲ့ ကွဲပြားသည်။
+
+### Rule 6: Frequency Rule
+
+အကြိမ် ၃၀+ ပေါ်သော စကားလုံးတစ်လုံးနှင့် အကြိမ် ၁-၂ ကြိမ်သာ ပေါ်သော အလားတူစကားလုံးတစ်လုံး ရှိပါက **Rare Variant Error** အဖြစ် Report လုပ်ရမည်။
+
+### Rule 7: Person Name Mode
+
+ဇာတ်ကောင်နာမည်များအတွက်:
+1. **Character Database** — main form သိမ်း
+2. **Phonetic Similarity** — Levenshtein distance နီးကပ်နေပါက စစ်ဆေး
+3. **Frequency Analysis** — အကြိမ်ရေ သိသိသာသာကွာနေပါက Flag
+
+### Rule 8: Human Suspicion Mode
+
+အဘိဓာန်ထဲမှာ ရှိလို့ မလွှတ်ပါနှင့်။ စာအုပ်တစ်အုပ်လုံး၏ Context အရ သံသယရှိပါက **SUSPICIOUS** အဖြစ် ထုတ်ပြရမည်။ အမှားမတွေ့လျှင်ပင် **အထူးသံသယရှိသော စကားလုံး ၅၀** ကို စာရင်းထုတ်ပြရမည်။
+
+---
+
+## Output Format for All Future Proofreads
+
+```
+🔴 **အတည်ပြုနိုင်သောအမှားများ**
+- L#: 'မူရင်း' → 'အမှန်' (အကြောင်း)
+
+❓ **လူပြန်စစ်သင့်သည်**
+- L#: 'သံသယ' → 'အကြံပြုချက်'
+```
+
+**အမြဲမှတ်ရန်:** Error ကိုပဲပြရမည်၊ မပြင်ရ။ မသေချာလျှင် Flag လုပ်ပြီး ပြန်မေးရမည်။
+
+### Zero-width Space Characters to Check
+
+| Character | Name | Issue |
+|-----------|------|-------|
+| U+200B | ZWSP (Zero-Width Space) | Text viewer artifacts |
+| U+200C | ZWNJ (Zero-Width Non-Joiner) | Font rendering artifacts |
+| U+200D | ZWJ (Zero-Width Joiner) | Rare in plain text |
+| U+FEFF | BOM (Byte Order Mark) | Chapter numbers, file start |
+
+### Quote Balance Check
+
+Myanmar double quotes (U+201C " and U+201D ") အရေအတွက်ကို အမြဲစစ်ဆေးရမည်။
+- Open quotes (") count ≠ Close quotes (") count → missing quote
